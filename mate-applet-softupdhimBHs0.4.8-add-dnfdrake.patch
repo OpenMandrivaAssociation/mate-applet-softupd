@@ -1,0 +1,60 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -274,7 +274,16 @@ AC_SUBST([RPM_BUILDREQUIRES_BACKEND])
+ # Check which software installer to use
+ FOUND_INSTALLER="no"
+ FORCE_INSTALLER="no"
+-AC_ARG_ENABLE([installer],[AS_HELP_STRING([--enable-installer],[use the specified backend: yumex-dnf, yumex, gpk-update-viewer, update-manager (default: pick up the first available from the list)])],[FORCE_INSTALLER=$enableval])
++AC_ARG_ENABLE([installer],[AS_HELP_STRING([--enable-installer],[use the specified backend: dnfdrake.gambas, yumex-dnf, yumex, gpk-update-viewer, update-manager (default: pick up the first available from the list)])],[FORCE_INSTALLER=$enableval])
++
++# Check for dnfdrake
++AC_CHECK_PROG([CHECK_DNFDRAKEVIEWER],[dnfdrake.gambas],[yes],[no])
++if test $CHECK_DNFDRAKEVIEWER = "no" ; then
++        echo "*** dnfdrake not found."
++else
++        FOUND_INSTALLER="yes"
++        DNFDRAKEVIEWER_INSTALLER=`which dnfdrake.gambas`
++fi
+ 
+ # Check for yumex
+ AC_CHECK_PROG([CHECK_YUMEXVIEWER],[yumex],[yes],[no])
+@@ -323,7 +332,14 @@ fi
+ 
+ # Select which software installer to use
+ SELECTED_INSTALLER="none"
+-if test $FORCE_INSTALLER = "yumex" ; then
++if test $FORCE_INSTALLER = "dnfdrake.gambas" ; then
++	if test $CHECK_DNFDRAKEVIEWER = "yes" ; then
++		SELECTED_INSTALLER="dnfdrake.gambas"
++	else 
++                EXIT_NOW="yes"
++                EXIT_MSG="Forced installer $FORCE_INSTALLER not found. Cannot continue."	
++	fi
++elif test $FORCE_INSTALLER = "yumex" ; then
+ 	if test $CHECK_YUMEXVIEWER = "yes" ; then
+ 		SELECTED_INSTALLER="yumex"
+ 	else 
+@@ -361,7 +377,9 @@ elif test $FORCE_INSTALLER = "dnfdragora
+         fi
+ else
+ 	echo "Chosing installer wisely..."
+-	if test $CHECK_DNFDRAGORA = "yes" ; then
++	if test $CHECK_DNFDRKE = "yes" ; then
++        	SELECTED_INSTALLER="dnfdrake.gambas"
++	elif test $CHECK_DNFDRAGORA = "yes" ; then
+         	SELECTED_INSTALLER="dnfdragora"
+ 	elif test $CHECK_YUMEXDNFVIEWER = "yes" ; then
+         	SELECTED_INSTALLER="yumex-dnf"
+@@ -377,7 +395,11 @@ fi
+ RPM_REQUIRES_INSTALLER=""
+ RPM_BUILDREQUIRES_INSTALLER=""
+ AC_DEFINE_UNQUOTED([SELECTED_INSTALLER],["$SELECTED_INSTALLER"],[Define which installer was selected])
+-if test $SELECTED_INSTALLER = "yumex" ; then
++if test $SELECTED_INSTALLER = "dnfdrake.gambas" ; then
++        AC_DEFINE_UNQUOTED([INSTALLER_BINARY],["$DNFDRAKEVIEWER_INSTALLER"],[Define where is the installer binary])
++	RPM_REQUIRES_INSTALLER="Requires: dnfdrake"
++	RPM_BUILDREQUIRES_INSTALLER="BuildRequires:dnfdrake"
++elif test $SELECTED_INSTALLER = "yumex" ; then
+         AC_DEFINE_UNQUOTED([INSTALLER_BINARY],["$YUMEXVIEWER_INSTALLER"],[Define where is the installer binary])
+ 	RPM_REQUIRES_INSTALLER="Requires: yumex"
+ 	RPM_BUILDREQUIRES_INSTALLER="BuildRequires:yumex"
